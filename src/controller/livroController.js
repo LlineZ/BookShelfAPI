@@ -2,14 +2,16 @@ import livro from "../models/Livro.js";
 import { Autor } from "../models/index.js";
 import mongoose from "mongoose";
 import erros from "../erros/erroBase.js";
+import RequisicaoIncorreta from "../erros/RequisicaoIncorreta.js";
 
 class livroController {
 
     static async listarLivros (req, res, next){
         try {
-            const livrosDAO= await livro.find({});
-            res.status(200).json(livrosDAO)
-            
+            const buscaLivros = livro.find()
+            req.resultado = buscaLivros;
+            next()
+
         } catch (error) {
             next(error)
             
@@ -17,6 +19,9 @@ class livroController {
 
 
     }
+
+
+    
     static async cadastrarLivros(req, res, next) {
         const novoLivro = req.body;
         try {
@@ -73,11 +78,43 @@ class livroController {
             
         }
     }
-    static async buscarLivrosEditora (req, res, next){
+    static async buscarLivrosFiltro (req, res, next){
         try {
-            const { editora } = req.query
-            const resultadoBusca = await livro.find({editora}) 
-            res.status(200).json(resultadoBusca)
+            const { editora, titulo, maxPreco, minPreco, autor } = req.query
+
+
+                // greater then lower then 
+            // {
+            //     numeroPaginas: {
+            //       $gte: 500,
+            //       $lte: 1000
+            //     }
+            //   }
+
+            const busca = {};
+            //if(titulo) busca.titulo = new RegExp(titulo, "i") soluçao de javascript puro
+            if(editora) busca.editora = editora
+            if(titulo) busca.titulo = {$regex: titulo, $options: "i"}
+            if(minPreco || maxPreco) busca.preco = {}
+            if (minPreco) busca.preco.$gte = minPreco
+            if (maxPreco) busca.preco.$lte = maxPreco
+
+            if(autor){
+                const objAutor = await Autor.findOne({nome: {$regex: autor, $options:"i"}})
+                if (objAutor !== null) {
+                    busca.autor = objAutor._id
+
+                } else {
+                    res.status(200).json([])
+                }
+            }
+            const resultadoBusca = livro.find(busca).populate("autor")
+
+            req.resultado = resultadoBusca
+
+            next()
+
+
         } catch (error) {
             next(error)
         }

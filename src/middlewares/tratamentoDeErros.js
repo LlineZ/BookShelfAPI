@@ -12,6 +12,9 @@ function manipuladorDeErros (erro, req, res,next){
 
         new ErroValidacao(erro).enviarResposta(res);
     } 
+    else if (erro instanceof RequsicaoIncorreta){
+        new RequsicaoIncorreta().enviarResposta(res)
+    }
     else{
         new erroBase().enviarResposta(res);
         
